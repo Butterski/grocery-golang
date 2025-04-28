@@ -1,0 +1,32 @@
+version: '3'
+
+services:
+  postgres:
+    image: postgres:13
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: grocerydb
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - grocery-network
+
+  api:
+    build: .
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/grocerydb
+    networks:
+      - grocery-network
+
+networks:
+  grocery-network:
+
+volumes:
+  postgres_data:

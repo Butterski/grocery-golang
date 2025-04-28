@@ -25,6 +25,9 @@ ENV GIN_MODE=release
 # Copy the binary from the build stage
 COPY --from=build /go/src/openapi ./
 
+# Copy the API specification directory
+COPY api ./api
+
 # Expose the API port
 EXPOSE 8080/tcp
 
