@@ -32,5 +32,10 @@ func main() {
 
 	router := sw.NewRouter(routes)
 
+	// Setup Swagger UI
+	sw.SetupSwagger(router)
+
+	log.Printf("Swagger UI available at http://localhost:8080/swagger/")
+
 	log.Fatal(router.Run(":8080"))
 }

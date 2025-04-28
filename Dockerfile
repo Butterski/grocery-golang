@@ -1,4 +1,4 @@
-FROM golang:1.20 AS build
+FROM golang:1.24 AS build
 WORKDIR /go/src
 COPY go ./go
 COPY main.go .
@@ -15,7 +15,7 @@ ENV CGO_ENABLED=0
 RUN go build -o openapi .
 
 # Use a more feature-rich base image to support networking with PostgreSQL
-FROM alpine:3.14 AS runtime
+FROM alpine:3.21 AS runtime
 # Install CA certificates for secure connections
 RUN apk --no-cache add ca-certificates
 
