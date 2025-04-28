@@ -20,6 +20,12 @@ import (
 )
 
 func main() {
+	// Setup database connection
+	err := sw.SetupDB()
+	if err != nil {
+		log.Fatalf("Failed to setup database: %v", err)
+	}
+
 	routes := sw.ApiHandleFunctions{}
 
 	log.Printf("Server started")

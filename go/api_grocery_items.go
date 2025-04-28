@@ -11,7 +11,11 @@
 package openapi
 
 import (
+	"net/http"
+	"strconv"
+
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 type GroceryItemsAPI struct {
@@ -20,34 +24,279 @@ type GroceryItemsAPI struct {
 // Post /items
 // Add a new grocery item
 func (api *GroceryItemsAPI) AddItem(c *gin.Context) {
-	// Your handler implementation
-	c.JSON(200, gin.H{"status": "OK"})
+	var newItem GroceryItemCreate
+
+	// Bind the request body to the GroceryItemCreate struct
+	if err := c.ShouldBindJSON(&newItem); err != nil {
+		c.JSON(http.StatusBadRequest, Error{
+			Message: "Invalid request body",
+			Details: err.Error(),
+		})
+		return
+	}
+
+	// Validate required fields
+	if newItem.Name == "" {
+		c.JSON(http.StatusBadRequest, Error{
+			Message: "Invalid request body",
+			Details: "Name is required",
+		})
+		return
+	}
+
+	if newItem.Quantity < 1 {
+		c.JSON(http.StatusBadRequest, Error{
+			Message: "Invalid request body",
+			Details: "Quantity must be at least 1",
+		})
+		return
+	}
+
+	// Create a new GroceryItem from the request data
+	item := GroceryItem{
+		Name:      newItem.Name,
+		Quantity:  newItem.Quantity,
+		Unit:      newItem.Unit,
+		Category:  newItem.Category,
+		Notes:     newItem.Notes,
+		Purchased: false,
+	}
+
+	// Save the item to the database
+	result := DB.Create(&item)
+	if result.Error != nil {
+		c.JSON(http.StatusInternalServerError, Error{
+			Message: "Failed to create item",
+			Details: result.Error.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusCreated, item)
 }
 
 // Delete /items/:itemId
 // Delete a grocery item
 func (api *GroceryItemsAPI) DeleteItem(c *gin.Context) {
-	// Your handler implementation
-	c.JSON(200, gin.H{"status": "OK"})
+	// Parse and validate the item ID
+	idStr := c.Param("itemId")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, Error{
+			Message: "Invalid item ID",
+			Details: "Item ID must be a valid integer",
+		})
+		return
+	}
+
+	// Find the item in the database
+	var item GroceryItem
+	result := DB.First(&item, id)
+	if result.Error != nil {
+		if result.Error == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, Error{
+				Message: "Item not found",
+				Details: "The specified resource was not found",
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, Error{
+			Message: "Database error",
+			Details: result.Error.Error(),
+		})
+		return
+	}
+
+	// Delete the item from the database
+	result = DB.Delete(&item)
+	if result.Error != nil {
+		c.JSON(http.StatusInternalServerError, Error{
+			Message: "Failed to delete item",
+			Details: result.Error.Error(),
+		})
+		return
+	}
+
+	c.Status(http.StatusNoContent)
 }
 
 // Get /items/:itemId
 // Get a grocery item by ID
 func (api *GroceryItemsAPI) GetItemById(c *gin.Context) {
-	// Your handler implementation
-	c.JSON(200, gin.H{"status": "OK"})
+	// Parse and validate the item ID
+	idStr := c.Param("itemId")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, Error{
+			Message: "Invalid item ID",
+			Details: "Item ID must be a valid integer",
+		})
+		return
+	}
+
+	// Find the item in the database
+	var item GroceryItem
+	result := DB.First(&item, id)
+	if result.Error != nil {
+		if result.Error == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, Error{
+				Message: "Item not found",
+				Details: "The specified resource was not found",
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, Error{
+			Message: "Database error",
+			Details: result.Error.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, item)
 }
 
 // Get /items
-// List all grocery items
+// List all grocery items with optional filtering and sorting
 func (api *GroceryItemsAPI) ListItems(c *gin.Context) {
-	// Your handler implementation
-	c.JSON(200, gin.H{"status": "OK"})
+	// Initialize database query
+	query := DB.Model(&GroceryItem{})
+
+	// Apply filters
+	if name := c.Query("name"); name != "" {
+		query = query.Where("name ILIKE ?", "%"+name+"%")
+	}
+
+	if category := c.Query("category"); category != "" {
+		query = query.Where("category ILIKE ?", "%"+category+"%")
+	}
+
+	if purchased := c.Query("purchased"); purchased != "" {
+		var purchasedBool bool
+		if purchased == "true" {
+			purchasedBool = true
+		} else if purchased == "false" {
+			purchasedBool = false
+		} else {
+			c.JSON(http.StatusBadRequest, Error{
+				Message: "Invalid purchased parameter",
+				Details: "purchased must be 'true' or 'false'",
+			})
+			return
+		}
+		query = query.Where("purchased = ?", purchasedBool)
+	}
+
+	// Apply sorting
+	sortBy := c.DefaultQuery("sortBy", "")
+	sortDirection := c.DefaultQuery("sortDirection", "asc")
+
+	if sortBy != "" {
+		// Validate sort field
+		if sortBy != "createdAt" && sortBy != "updatedAt" {
+			c.JSON(http.StatusBadRequest, Error{
+				Message: "Invalid sort parameter",
+				Details: "sortBy must be 'createdAt' or 'updatedAt'",
+			})
+			return
+		}
+
+		// Apply sort order
+		if sortDirection == "desc" {
+			query = query.Order(sortBy + " DESC")
+		} else {
+			query = query.Order(sortBy + " ASC")
+		}
+	}
+
+	// Execute the query
+	var items []GroceryItem
+	result := query.Find(&items)
+	if result.Error != nil {
+		c.JSON(http.StatusInternalServerError, Error{
+			Message: "Database error",
+			Details: result.Error.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, items)
 }
 
 // Put /items/:itemId
 // Update a grocery item
 func (api *GroceryItemsAPI) UpdateItem(c *gin.Context) {
-	// Your handler implementation
-	c.JSON(200, gin.H{"status": "OK"})
+	// Parse and validate the item ID
+	idStr := c.Param("itemId")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, Error{
+			Message: "Invalid item ID",
+			Details: "Item ID must be a valid integer",
+		})
+		return
+	}
+
+	// Bind the request body to the GroceryItemCreate struct
+	var update GroceryItemCreate
+	if err := c.ShouldBindJSON(&update); err != nil {
+		c.JSON(http.StatusBadRequest, Error{
+			Message: "Invalid request body",
+			Details: err.Error(),
+		})
+		return
+	}
+
+	// Validate required fields
+	if update.Name == "" {
+		c.JSON(http.StatusBadRequest, Error{
+			Message: "Invalid request body",
+			Details: "Name is required",
+		})
+		return
+	}
+
+	if update.Quantity < 1 {
+		c.JSON(http.StatusBadRequest, Error{
+			Message: "Invalid request body",
+			Details: "Quantity must be at least 1",
+		})
+		return
+	}
+
+	// Find the item in the database
+	var item GroceryItem
+	result := DB.First(&item, id)
+	if result.Error != nil {
+		if result.Error == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, Error{
+				Message: "Item not found",
+				Details: "The specified resource was not found",
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, Error{
+			Message: "Database error",
+			Details: result.Error.Error(),
+		})
+		return
+	}
+
+	// Update the item with the provided data
+	item.Name = update.Name
+	item.Quantity = update.Quantity
+	item.Unit = update.Unit
+	item.Category = update.Category
+	item.Notes = update.Notes
+
+	// Save the updated item to the database
+	result = DB.Save(&item)
+	if result.Error != nil {
+		c.JSON(http.StatusInternalServerError, Error{
+			Message: "Failed to update item",
+			Details: result.Error.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, item)
 }
