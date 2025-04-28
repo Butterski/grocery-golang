@@ -1,0 +1,291 @@
+openapi: 3.0.3
+info:
+  contact:
+    email: support@example.edu
+    name: University Course Staff
+  description: "A simple REST API for managing a grocery shopping list, designed for\
+    \ student term projects."
+  title: Grocery List Management API
+  version: 1.0.0
+servers:
+- description: Local development server
+  url: http://localhost:8000
+tags:
+- description: Operations for managing grocery items
+  name: grocery-items
+paths:
+  /items:
+    get:
+      description: Returns a list of all grocery items in the database
+      operationId: listItems
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/GroceryItem'
+                type: array
+          description: A list of grocery items
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Internal server error
+      summary: List all grocery items
+      tags:
+      - grocery-items
+    post:
+      description: Adds a new item to the grocery list
+      operationId: addItem
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GroceryItemCreate'
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroceryItem'
+          description: Item created successfully
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Bad request - invalid input
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Internal server error
+      summary: Add a new grocery item
+      tags:
+      - grocery-items
+  /items/{itemId}:
+    delete:
+      description: Deletes a grocery item from the list
+      operationId: deleteItem
+      parameters:
+      - description: ID of the grocery item to delete
+        explode: false
+        in: path
+        name: itemId
+        required: true
+        schema:
+          format: int64
+          type: integer
+        style: simple
+      responses:
+        "204":
+          description: Item deleted successfully
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: The specified resource was not found
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Internal server error
+      summary: Delete a grocery item
+      tags:
+      - grocery-items
+    get:
+      description: Returns details of a specific grocery item
+      operationId: getItemById
+      parameters:
+      - description: ID of the grocery item to retrieve
+        explode: false
+        in: path
+        name: itemId
+        required: true
+        schema:
+          format: int64
+          type: integer
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroceryItem'
+          description: Details of the grocery item
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: The specified resource was not found
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Internal server error
+      summary: Get a grocery item by ID
+      tags:
+      - grocery-items
+    put:
+      description: Updates an existing grocery item
+      operationId: updateItem
+      parameters:
+      - description: ID of the grocery item to update
+        explode: false
+        in: path
+        name: itemId
+        required: true
+        schema:
+          format: int64
+          type: integer
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GroceryItemCreate'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroceryItem'
+          description: Item updated successfully
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Bad request - invalid input
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: The specified resource was not found
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Internal server error
+      summary: Update a grocery item
+      tags:
+      - grocery-items
+components:
+  responses:
+    BadRequest:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+      description: Bad request - invalid input
+    NotFound:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+      description: The specified resource was not found
+    ServerError:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+      description: Internal server error
+  schemas:
+    GroceryItemCreate:
+      example:
+        unit: liters
+        quantity: 2
+        notes: Lactose-free
+        name: Milk
+        category: Dairy
+      properties:
+        name:
+          description: Name of the grocery item
+          example: Milk
+          maxLength: 100
+          type: string
+        quantity:
+          description: Quantity of the item needed
+          example: 2
+          minimum: 1
+          type: integer
+        unit:
+          description: Unit of measurement
+          example: liters
+          maxLength: 20
+          type: string
+        category:
+          description: Category of the item
+          example: Dairy
+          maxLength: 50
+          type: string
+        notes:
+          description: Additional notes about the item
+          example: Lactose-free
+          maxLength: 255
+          type: string
+      required:
+      - name
+      - quantity
+      type: object
+    GroceryItem:
+      allOf:
+      - $ref: '#/components/schemas/GroceryItemCreate'
+      - properties:
+          id:
+            description: Unique identifier for the item
+            example: 1
+            format: int64
+            type: integer
+          createdAt:
+            description: When the item was created
+            format: date-time
+            type: string
+          updatedAt:
+            description: When the item was last updated
+            format: date-time
+            type: string
+          purchased:
+            default: false
+            description: Whether the item has been purchased
+            type: boolean
+        required:
+        - createdAt
+        - id
+        - updatedAt
+        type: object
+      example:
+        createdAt: 2000-01-23T04:56:07.000+00:00
+        unit: liters
+        quantity: 2
+        notes: Lactose-free
+        purchased: false
+        name: Milk
+        id: 1
+        category: Dairy
+        updatedAt: 2000-01-23T04:56:07.000+00:00
+    Error:
+      example:
+        details: details
+        message: message
+      properties:
+        message:
+          description: Error message
+          type: string
+        details:
+          description: Detailed error information
+          type: string
+      required:
+      - message
+      type: object
