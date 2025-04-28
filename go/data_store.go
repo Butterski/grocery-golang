@@ -46,7 +46,7 @@ func (s *GroceryStore) AddItem(item GroceryItemCreate) (*GroceryItem, error) {
 		Unit:      item.Unit,
 		Category:  item.Category,
 		Notes:     item.Notes,
-		Id:        s.lastID,
+		ID:        s.lastID,
 		CreatedAt: now,
 		UpdatedAt: now,
 		Purchased: false,
@@ -167,6 +167,6 @@ func comparator(a, b *GroceryItem, sortBy string) bool {
 		return a.UpdatedAt.Before(b.UpdatedAt)
 	default:
 		// Default sort by ID if an invalid sort field is provided
-		return a.Id < b.Id
+		return a.ID < b.ID
 	}
 }

@@ -10,36 +10,19 @@
 
 package openapi
 
-import (
-	"time"
-)
+// This file only contains comments documenting the struct fields
+// The actual GroceryItem struct is defined in database.go
 
-type GroceryItem struct {
+/*
+GroceryItem struct fields:
 
-	// Name of the grocery item
-	Name string `json:"name"`
-
-	// Quantity of the item needed
-	Quantity int32 `json:"quantity"`
-
-	// Unit of measurement
-	Unit string `json:"unit,omitempty"`
-
-	// Category of the item
-	Category string `json:"category,omitempty"`
-
-	// Additional notes about the item
-	Notes string `json:"notes,omitempty"`
-
-	// Unique identifier for the item
-	Id int64 `json:"id"`
-
-	// When the item was created
-	CreatedAt time.Time `json:"createdAt"`
-
-	// When the item was last updated
-	UpdatedAt time.Time `json:"updatedAt"`
-
-	// Whether the item has been purchased
-	Purchased bool `json:"purchased,omitempty"`
-}
+Name: Name of the grocery item
+Quantity: Quantity of the item needed
+Unit: Unit of measurement
+Category: Category of the item
+Notes: Additional notes about the item
+ID: Unique identifier for the item
+CreatedAt: When the item was created
+UpdatedAt: When the item was last updated
+Purchased: Whether the item has been purchased
+*/

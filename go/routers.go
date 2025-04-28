@@ -19,13 +19,15 @@ import (
 // Route is the information for every URI.
 type Route struct {
 	// Name is the name of this Route.
-	Name		string
+	Name string
 	// Method is the string for the HTTP method. ex) GET, POST etc..
-	Method		string
+	Method string
 	// Pattern is the pattern of the URI.
-	Pattern	 	string
+	Pattern string
 	// HandlerFunc is the handler function of this route.
-	HandlerFunc	gin.HandlerFunc
+	HandlerFunc gin.HandlerFunc
+	// Protected specifies whether this route requires authentication
+	Protected bool
 }
 
 // NewRouter returns a new router.
@@ -35,21 +37,34 @@ func NewRouter(handleFunctions ApiHandleFunctions) *gin.Engine {
 
 // NewRouter add routes to existing gin engine.
 func NewRouterWithGinEngine(router *gin.Engine, handleFunctions ApiHandleFunctions) *gin.Engine {
+	// Get the JWT middleware
+	jwtAuth := JWTAuthMiddleware()
+
 	for _, route := range getRoutes(handleFunctions) {
 		if route.HandlerFunc == nil {
 			route.HandlerFunc = DefaultHandleFunc
 		}
+
+		// Set up the handler with or without middleware based on whether the route is protected
+		var handler gin.HandlerFunc
+		if route.Protected {
+			handler = jwtAuth(route.HandlerFunc)
+		} else {
+			handler = route.HandlerFunc
+		}
+
+		// Register the route with the appropriate HTTP method
 		switch route.Method {
 		case http.MethodGet:
-			router.GET(route.Pattern, route.HandlerFunc)
+			router.GET(route.Pattern, handler)
 		case http.MethodPost:
-			router.POST(route.Pattern, route.HandlerFunc)
+			router.POST(route.Pattern, handler)
 		case http.MethodPut:
-			router.PUT(route.Pattern, route.HandlerFunc)
+			router.PUT(route.Pattern, handler)
 		case http.MethodPatch:
-			router.PATCH(route.Pattern, route.HandlerFunc)
+			router.PATCH(route.Pattern, handler)
 		case http.MethodDelete:
-			router.DELETE(route.Pattern, route.HandlerFunc)
+			router.DELETE(route.Pattern, handler)
 		}
 	}
 
@@ -62,42 +77,63 @@ func DefaultHandleFunc(c *gin.Context) {
 }
 
 type ApiHandleFunctions struct {
-
 	// Routes for the GroceryItemsAPI part of the API
 	GroceryItemsAPI GroceryItemsAPI
+
+	// Routes for the AuthAPI part of the API
+	AuthAPI AuthAPI
 }
 
 func getRoutes(handleFunctions ApiHandleFunctions) []Route {
-	return []Route{ 
+	return []Route{
 		{
 			"AddItem",
 			http.MethodPost,
 			"/items",
 			handleFunctions.GroceryItemsAPI.AddItem,
+			true, // Protected route
 		},
 		{
 			"DeleteItem",
 			http.MethodDelete,
 			"/items/:itemId",
 			handleFunctions.GroceryItemsAPI.DeleteItem,
+			true, // Protected route
 		},
 		{
 			"GetItemById",
 			http.MethodGet,
 			"/items/:itemId",
 			handleFunctions.GroceryItemsAPI.GetItemById,
+			true, // Protected route
 		},
 		{
 			"ListItems",
 			http.MethodGet,
 			"/items",
 			handleFunctions.GroceryItemsAPI.ListItems,
+			true, // Protected route
 		},
 		{
 			"UpdateItem",
 			http.MethodPut,
 			"/items/:itemId",
 			handleFunctions.GroceryItemsAPI.UpdateItem,
+			true, // Protected route
+		},
+		{
+			"Register",
+			http.MethodPost,
+			"/register",
+			handleFunctions.AuthAPI.Register,
+			false, // Public route
+		},
+		{
+			"Login",
+			http.MethodPost,
+			"/login",
+			handleFunctions.AuthAPI.Login,
+			false, // Public route
 		},
 	}
 }

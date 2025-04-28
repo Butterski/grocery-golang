@@ -47,8 +47,8 @@ func SetupDB() error {
 		return fmt.Errorf("failed to connect to database: %v", err)
 	}
 
-	// Migrate the schema
-	err = DB.AutoMigrate(&GroceryItem{})
+	// Migrate both schemas
+	err = DB.AutoMigrate(&GroceryItem{}, &User{})
 	if err != nil {
 		return fmt.Errorf("failed to migrate database: %v", err)
 	}
