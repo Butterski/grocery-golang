@@ -45,26 +45,38 @@ func NewRouterWithGinEngine(router *gin.Engine, handleFunctions ApiHandleFunctio
 			route.HandlerFunc = DefaultHandleFunc
 		}
 
-		// Set up the handler with or without middleware based on whether the route is protected
-		var handler gin.HandlerFunc
-		if route.Protected {
-			handler = jwtAuth(route.HandlerFunc)
-		} else {
-			handler = route.HandlerFunc
-		}
-
 		// Register the route with the appropriate HTTP method
 		switch route.Method {
 		case http.MethodGet:
-			router.GET(route.Pattern, handler)
+			if route.Protected {
+				router.GET(route.Pattern, jwtAuth, route.HandlerFunc)
+			} else {
+				router.GET(route.Pattern, route.HandlerFunc)
+			}
 		case http.MethodPost:
-			router.POST(route.Pattern, handler)
+			if route.Protected {
+				router.POST(route.Pattern, jwtAuth, route.HandlerFunc)
+			} else {
+				router.POST(route.Pattern, route.HandlerFunc)
+			}
 		case http.MethodPut:
-			router.PUT(route.Pattern, handler)
+			if route.Protected {
+				router.PUT(route.Pattern, jwtAuth, route.HandlerFunc)
+			} else {
+				router.PUT(route.Pattern, route.HandlerFunc)
+			}
 		case http.MethodPatch:
-			router.PATCH(route.Pattern, handler)
+			if route.Protected {
+				router.PATCH(route.Pattern, jwtAuth, route.HandlerFunc)
+			} else {
+				router.PATCH(route.Pattern, route.HandlerFunc)
+			}
 		case http.MethodDelete:
-			router.DELETE(route.Pattern, handler)
+			if route.Protected {
+				router.DELETE(route.Pattern, jwtAuth, route.HandlerFunc)
+			} else {
+				router.DELETE(route.Pattern, route.HandlerFunc)
+			}
 		}
 	}
 
