@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 
 	"github.com/gin-gonic/gin"
-	"github.com/swaggest/swgui"
+	"github.com/swaggest/swgui/v5emb"
 )
 
 // SetupSwagger configures and adds Swagger UI routes to the router
@@ -20,7 +20,7 @@ func SetupSwagger(router *gin.Engine) {
 	apiSpecPath := "/api/openapi.yaml"
 
 	// Create a new Swagger UI handler
-	swaggerHandler := swgui.New(
+	swaggerHandler := v5emb.New(
 		"Grocery List API", // Title for the Swagger UI page
 		apiSpecPath,        // Path to the OpenAPI specification
 		"/swagger/",        // Base URL path for Swagger UI
